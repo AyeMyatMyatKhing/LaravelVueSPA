@@ -1,15 +1,14 @@
-import './bootstrap';
-import { createApp } from 'vue';
-import { Bootstrap5Pagination } from 'laravel-vue-pagination';
+import './bootstrap'
+import { createApp } from 'vue'
+import { Bootstrap5Pagination } from 'laravel-vue-pagination'
 import Swal from 'sweetalert2'
+import VueProgressBar from "@aacassandra/vue3-progressbar";
 
 const app = createApp({});
 
-import ExampleComponent from './components/ExampleComponent.vue';
 import ProductComponent from './components/ProductComponent.vue';
 
 app.component('pagination', Bootstrap5Pagination);
-app.component('example-component', ExampleComponent);
 app.component('product-component' , ProductComponent);
 
 window.Toast = Swal.mixin({
@@ -23,6 +22,22 @@ window.Toast = Swal.mixin({
       toast.addEventListener("mouseleave", Swal.resumeTimer);
     },
 });
+
+const options = {
+  color: "#bffaf3",
+  failedColor: "#874b4b",
+  thickness: "5px",
+  transition: {
+    speed: "0.2s",
+    opacity: "0.6s",
+    termination: 300,
+  },
+  autoRevert: true,
+  location: "left",
+  inverse: false,
+};
+
+app.use(VueProgressBar, options);
 
 window.Swal = Swal
 

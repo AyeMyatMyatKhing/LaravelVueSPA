@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\ProductCreateRequest;
 use App\Http\Requests\ProductUpdateRequest;
 
@@ -13,10 +14,28 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return Product::when(request('search') , function($query){
-            $query->where('name' , 'like' , '%' . request('search') . '%')
-                    ->orWhere('price' , 'like' , '%' . request('search') . '%');
-        })->latest()->paginate(10);
+        $search = request('search');
+        $priceRange = request('price');
+        try {
+            $productList = Product::when($search, function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%');
+            })
+            ->when($priceRange, function ($query) use ($priceRange) {
+                $query->whereBetween('price', $priceRange);
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(10);
+
+            $priceList = Product::pluck('price');
+
+            $categoryProduct = Product::get();
+            
+            return response()->json(['product' => $productList , 'price' => $priceList , 'categoryProduct' => $categoryProduct]);
+        } catch(\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500); 
+        }
     }
 
     /**
@@ -24,8 +43,16 @@ class ProductController extends Controller
      */
     public function store(ProductCreateRequest $request)
     {
-        Product::create($request->only('name' , 'price'));
-        return response()->json(['message' => 'Product Create Successfully'] , 200);
+        try {
+            Log::info($request->only('name' , 'price' , 'category'));
+            Product::create($request->only('name' , 'price' , 'category'));
+            return response()->json(['message' => 'Product Create Successfully'] , 200);
+        } catch(\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500); 
+        }
+        
     }
 
     /**
@@ -41,8 +68,14 @@ class ProductController extends Controller
      */
     public function update(ProductUpdateRequest $request, Product $product)
     {
-        $product->update($request->only('name' , 'price'));
-        return response()->json(['message' => 'Product update successfully']);
+        try {
+            $product->update($request->only('name' , 'price' , 'category'));
+            return response()->json(['message' => 'Product update successfully']);
+        } catch(\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500); 
+        }
     }
 
     /**
@@ -50,7 +83,14 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        $product->delete();
-        return response()->json(['message' => 'Product delete successfully']);
+        try {
+            $product->delete();
+            return response()->json(['message' => 'Product delete successfully']);
+        } catch(\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 500); 
+        }
+        
     }
 }

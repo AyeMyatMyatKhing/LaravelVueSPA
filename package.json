@@ -16,6 +16,7 @@
         "vue": "^3.2.37"
     },
     "dependencies": {
+        "@aacassandra/vue3-progressbar": "^1.0.3",
         "laravel-vue-pagination": "^4.1.0",
         "sweetalert2": "^11.7.12"
     }
