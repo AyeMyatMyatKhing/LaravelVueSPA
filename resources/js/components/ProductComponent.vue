@@ -29,7 +29,7 @@
             </select>
           </div>
           <div class="col-1">
-            <button class="btn btn-primary w-" type="submit">
+            <button class="btn btn-primary" type="submit">
               <i class="fa-solid fa-magnifying-glass me-1"></i>
             </button>
           </div>
@@ -168,7 +168,7 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody v-if="filterData.length > 0">
             <tr v-for="product in filterData" :key="product.id">
               <td>{{ product.id }}</td>
               <td>{{ product.name }}</td>
@@ -195,8 +195,17 @@
               </td>
             </tr>
           </tbody>
+          <tbody v-else>
+            <tr class="text-center"><td colspan="4">No Data</td></tr>
+          </tbody>
         </table>
-        <pagination :data="productsList" @pagination-change-page="productList" />
+        <pagination
+          :total="totalPages"
+          v-model="currentPage"
+          :per-page="itemsPerPage"
+          :page-count="pageCount"
+          @input="updateData"
+        />
       </div>
     </div>
   </div>
@@ -204,13 +213,15 @@
 
 <script setup>
 import axios from "axios";
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
+import { getCurrentInstance } from 'vue'
 
+const progress = getCurrentInstance().appContext.config.globalProperties.$Progress
 let isEdit = false;
 let showCreateCard = ref(true); 
 let showDetailCard = ref(false);
 let showCompareCard = ref(false);
-let productsList = ref({});
+let productsList = ref([]);
 let productId = ref("");
 let search = ref("");
 const categories = [
@@ -235,6 +246,8 @@ const product = reactive({
 });
 let successMessage = ref("");
 let error = ref([]);
+const itemsPerPage = 10;
+const currentPage = ref(1);
 
 onMounted(() => {
   productList();
@@ -324,20 +337,30 @@ const compareProductPrice = () => {
 }
 
 const filterData = computed(() => {
-    if (search.value !== '') {
-      const data = productsList.value.data
-      return data.filter(product => {
-        return product.name.toLowerCase().includes(search.value.toLowerCase());
-      })
-    }
-    return productsList.value.data
+  const startIndex = (currentPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  let filteredProducts  = productsList.value
+  if (search.value !== '') {
+    filteredProducts = filteredProducts.filter((product) =>
+      product.name.toLowerCase().includes(search.value.toLowerCase())
+    )
+  }
+  return filteredProducts.slice(startIndex, endIndex);
 })
 
+const totalPages = computed(() => Math.ceil(filterData.value.length / itemsPerPage));
+
+const pageCount = computed(() => Math.ceil(productsList.value.length / itemsPerPage));
+
+const updateData = (page) => {
+  currentPage.value = page;
+};
+
 // product list
-const productList = (page = 1) => {
+const productList = () => {
+  progress.start()
   axios.get("/api/products", {
       params: {
-        page: page,
         search: search.value,
         price: selectedRange.value,
       },
@@ -348,6 +371,7 @@ const productList = (page = 1) => {
       const price = res.data.price;
       minPrice.value = Math.min(...price);
       maxPrice.value = Math.max(...price);
+      progress.finish()
     });
 };
 

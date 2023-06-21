@@ -24,7 +24,7 @@ class ProductController extends Controller
                 $query->whereBetween('price', $priceRange);
             })
             ->orderBy('id', 'desc')
-            ->paginate(10);
+            ->get();
 
             $priceList = Product::pluck('price');
 

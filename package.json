@@ -18,6 +18,7 @@
     "dependencies": {
         "@aacassandra/vue3-progressbar": "^1.0.3",
         "laravel-vue-pagination": "^4.1.0",
-        "sweetalert2": "^11.7.12"
+        "sweetalert2": "^11.7.12",
+        "vuejs-paginate-next": "^1.0.2"
     }
 }
