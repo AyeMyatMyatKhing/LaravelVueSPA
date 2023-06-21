@@ -6,7 +6,7 @@
         <button class="btn btn-primary me-2" @click="create">
           <i class="fa-solid fa-plus-circle me-1"></i> Create
         </button>
-        <button class="btn btn-primary" @click="showCreateCard = false; showDetailCard = false; showCompareCard = true">
+        <button class="btn btn-primary" @click="compareCard">
           <i class="fas fa-tags me-1"></i>Compare Product Price
         </button>
       </div>
@@ -110,6 +110,7 @@
             </div>
           </div>
         </div>
+        <!-- compare price -->
         <div v-else-if="showCompareCard"> 
           <div class="card">
           <div class="card-header fs-2 fw-bold">Compare Price</div>
@@ -126,8 +127,8 @@
                     {{ category.label }}
                   </option>
                 </select>
-                <span class="text-danger" v-if="error.selectedCategory">{{
-                  error.selectedCategory[0]
+                <span class="text-danger" v-if="error.selectedCompareCategory">{{
+                  error.selectedCompareCategory[0]
                 }}</span>
               </div>
               <div class="mb-3">
@@ -168,7 +169,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="product in products.data" :key="product.id">
+            <tr v-for="product in filterData" :key="product.id">
               <td>{{ product.id }}</td>
               <td>{{ product.name }}</td>
               <td>{{ product.price }}</td>
@@ -195,7 +196,7 @@
             </tr>
           </tbody>
         </table>
-        <pagination :data="products" @pagination-change-page="productList" />
+        <pagination :data="productsList" @pagination-change-page="productList" />
       </div>
     </div>
   </div>
@@ -203,13 +204,13 @@
 
 <script setup>
 import axios from "axios";
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 
 let isEdit = false;
 let showCreateCard = ref(true); 
 let showDetailCard = ref(false);
 let showCompareCard = ref(false);
-let products = ref([]);
+let productsList = ref({});
 let productId = ref("");
 let search = ref("");
 const categories = [
@@ -265,10 +266,22 @@ const getCategoryProducts = (categoryId) => {
   }
 };
 
+const compareCard = () => {
+  isEdit = false;
+  showCreateCard.value= false;
+  showDetailCard.value = false;
+  showCompareCard.value = true;
+  productId.value = "";
+  product.name = "";
+  product.price = "";
+  product.category = "";
+  error.value = ""
+}
+
 // compare product price
 const compareProductPrice = () => {
   if (selectedCompareCategory.value === '') {
-    error.value.selectedCategory = ['Please select category first.']
+  error.value = {selectedCompareCategory : ['Please select category first.']}
   }
   if (selectedProduct1.value === '') {
     error.value.selectedProduct1 = ['Please select first product.'];
@@ -310,10 +323,19 @@ const compareProductPrice = () => {
   }
 }
 
+const filterData = computed(() => {
+    if (search.value !== '') {
+      const data = productsList.value.data
+      return data.filter(product => {
+        return product.name.toLowerCase().includes(search.value.toLowerCase());
+      })
+    }
+    return productsList.value.data
+})
+
 // product list
-const productList = async (page = 1) => {
-  await axios
-    .get("/api/products", {
+const productList = (page = 1) => {
+  axios.get("/api/products", {
       params: {
         page: page,
         search: search.value,
@@ -321,7 +343,7 @@ const productList = async (page = 1) => {
       },
     })
     .then((res) => {
-      products.value = res.data.product;
+      productsList.value = res.data.product;
       categoryProduct.value = res.data.categoryProduct
       const price = res.data.price;
       minPrice.value = Math.min(...price);
