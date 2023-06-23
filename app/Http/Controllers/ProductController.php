@@ -25,12 +25,10 @@ class ProductController extends Controller
             })
             ->orderBy('id', 'desc')
             ->get();
-
-            $priceList = Product::pluck('price');
-
-            $categoryProduct = Product::get();
             
-            return response()->json(['product' => $productList , 'price' => $priceList , 'categoryProduct' => $categoryProduct]);
+            $priceList = Product::pluck('price');
+            
+            return response()->json(['product' => $productList , 'price' => $priceList ]);
         } catch(\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage()
@@ -44,8 +42,8 @@ class ProductController extends Controller
     public function store(ProductCreateRequest $request)
     {
         try {
-            Log::info($request->only('name' , 'price' , 'category'));
             Product::create($request->only('name' , 'price' , 'category'));
+            
             return response()->json(['message' => 'Product Create Successfully'] , 200);
         } catch(\Exception $e) {
             return response()->json([
@@ -53,14 +51,6 @@ class ProductController extends Controller
             ], 500); 
         }
         
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Product $product)
-    {
-       return $product;
     }
 
     /**

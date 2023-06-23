@@ -1,56 +1,30 @@
 <template>
   <div class="container my-5">
     <div class="row mb-3 justify-content-between">
-      <!-- create button -->
+      <!-- left side -->
       <div class="col-4">
-        <button class="btn btn-primary me-2" @click="create">
+        <!-- create and compare button -->
+        <div class="mb-4">
+          <button class="btn btn-primary me-2" @click="create">
           <i class="fa-solid fa-plus-circle me-1"></i> Create
-        </button>
-        <button class="btn btn-primary" @click="compareCard">
-          <i class="fas fa-tags me-1"></i>Compare Product Price
-        </button>
-      </div>
-      <!-- search product -->
-      <div class="col-8">
-        <form @submit.prevent="productList" class="row justify-content-start">
-          <div class="col-5">
-            <input
-              type="text"
-              v-model="search"
-              placeholder="Search Name"
-              class="form-control bg-white"
-            />
-          </div>
-          <div class="col-5">
-            <select class="form-select bg-white" v-model="selectedRange">
-              <option v-for="range in priceRange" :key="range" :value="range">
-                {{ range[0] }}~{{ range[1] }}
-              </option>
-            </select>
-          </div>
-          <div class="col-1">
-            <button class="btn btn-primary" type="submit">
-              <i class="fa-solid fa-magnifying-glass me-1"></i>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-4">
+          </button>
+          <button class="btn btn-primary" @click="compareCard">
+            <i class="fas fa-tags me-1"></i>Compare Product Price
+          </button>
+        </div>
         <!-- product detail -->
         <div v-if="showDetailCard">
           <div class="card">
             <div class="card-header fs-2 fw-bold">Detail</div>
             <div class="card-body bg-white fs-6 fw-semibold">
               <div class="mb-3">
-                <span>Name : </span>{{ productDetail.name }}
+                <span>Name : </span>{{ productDetail[0].name }}
               </div>
               <div class="mb-3">
-                <span>Category : </span>{{ productDetail.category }}
+                <span>Category : </span>{{ productDetail[0].category }}
               </div>
               <div class="mb-3">
-                <span>Price : </span>{{ productDetail.price }}
+                <span>Price : </span>{{ productDetail[0].price }}
               </div>
             </div>
           </div>
@@ -78,6 +52,7 @@
                 <div class="mb-3">
                   <label for="">Category</label>
                   <select v-model="product.category" class="form-select">
+                    <option value="">Select category</option>
                     <option
                       v-for="category in categories"
                       :key="category.id"
@@ -119,6 +94,7 @@
               <div class="mb-3">
                 <label for="">Select Category</label>
                 <select v-model="selectedCompareCategory" class="form-select">
+                  <option value="">Select category</option>
                   <option
                     v-for="category in categories"
                     :key="category.id"
@@ -133,7 +109,8 @@
               </div>
               <div class="mb-3">
                 <label for="">First Product</label>
-                <select v-model="selectedProduct1" class="form-select">
+                <select v-model="selectedProduct1" class="form-select" :disabled="!selectedCompareCategory">
+                  <option value="">Enter first product</option>
                   <option v-for="product in getCategoryProducts(selectedCompareCategory)" :key="product.id" :value="product">{{ product.name }}</option>
                 </select>
                 <span class="text-danger" v-if="error.selectedProduct1">{{
@@ -142,8 +119,9 @@
               </div>
               <div class="mb-3">
                 <label for="">Second Product</label>
-                <select v-model="selectedProduct2" class="form-select">
-                  <option v-for="product in getCategoryProducts(selectedCompareCategory)" :key="product.id" :value="product">{{ product.name }}</option>
+                <select v-model="selectedProduct2" class="form-select" :disabled="!selectedProduct1">
+                  <option value="">Enter second product</option>
+                  <option v-for="product in getFilteredCategoryProducts" :key="product.id" :value="product">{{ product.name }}</option>
                 </select>
                 <span class="text-danger" v-if="error.selectedProduct2">{{
                   error.selectedProduct2[0]
@@ -157,8 +135,39 @@
         </div>
         </div>
       </div>
-      <!-- product list -->
+      <!-- right side -->
       <div class="col-8">
+        <form @submit.prevent="productList" class="row justify-content-start mb-4">
+          <div class="col-5 d-flex">
+            <label class="fs-6 fw-semibold mt-2 me-3">Name</label>
+            <input
+              type="text"
+              v-model="search"
+              placeholder="Enter search keyword"
+              class="form-control bg-white"
+            />
+          </div>
+          <div class="col-5 d-flex">
+            <label class="fs-6 fw-semibold mt-2 me-3">Price</label>
+            <select class="form-select bg-white" v-model="selectedRange">
+              <option value="">All</option>
+              <option v-for="range in priceRange" :key="range" :value="range">
+                {{ range[0] }}~{{ range[1] }}
+              </option>
+            </select>
+          </div>
+          <div class="col-1">
+            <button class="btn btn-primary" type="submit">
+              <i class="fa-solid fa-magnifying-glass me-1"></i>
+            </button>
+          </div>
+        </form>
+        <div v-if="isSearch" class="border rounded mt-3 bg-light bg-gradient px-2 py-1 text-center mb-3">
+          <p>You are searching with <span v-if="search">"{{ search }}" and</span> <span v-if="selectedRange">the price range between {{ selectedRange[0] }} and {{ selectedRange[1] }}.</span>
+             The result data is {{ noOfSearchResult }}.</p>
+          <button class="btn btn-primary btn-sm" @click="closeAlertMessage">Close</button>
+        </div>
+        <!-- product list -->
         <table class="table table-success table-striped">
           <thead>
             <tr>
@@ -168,8 +177,8 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody v-if="filterData.length > 0">
-            <tr v-for="product in filterData" :key="product.id">
+          <tbody v-if="paginateFilterData.length > 0">
+            <tr v-for="product in paginateFilterData" :key="product.id">
               <td>{{ product.id }}</td>
               <td>{{ product.name }}</td>
               <td>{{ product.price }}</td>
@@ -200,6 +209,7 @@
           </tbody>
         </table>
         <pagination
+          v-if="showPagination"
           :total="totalPages"
           v-model="currentPage"
           :per-page="itemsPerPage"
@@ -218,6 +228,7 @@ import { getCurrentInstance } from 'vue'
 
 const progress = getCurrentInstance().appContext.config.globalProperties.$Progress
 let isEdit = false;
+let isSearch = ref(false);
 let showCreateCard = ref(true); 
 let showDetailCard = ref(false);
 let showCompareCard = ref(false);
@@ -231,12 +242,12 @@ const categories = [
   { id: "shoe", label: "Shoe" },
   { id: "cloth", label: "Clothings" },
 ];
-const selectedCompareCategory = ref('');
-const categoryProduct = ref([]);
-const selectedRange = ref([]);
+const noOfSearchResult = ref()
+const selectedRange = ref('');
 const minPrice = ref(0);
 const maxPrice = ref(0);
-const productDetail = ref([]);
+const productDetail = ref();
+const selectedCompareCategory = ref('');
 const selectedProduct1 = ref('')
 const selectedProduct2 = ref('')
 const product = reactive({
@@ -253,31 +264,51 @@ onMounted(() => {
   productList();
 });
 
-// get price range
+// get price range for filtering product
 const priceRange = computed(() => {
-  const range = [];
   const pairs = [];
-  const step = (maxPrice.value - minPrice.value) / 5;
-  for (let i = 0; i < 6; i++) {
-    const value = minPrice.value + step * i;
-    range.push(Math.round(value));
-  }
+  const range = maxPrice.value - minPrice.value;
+  const step = Math.ceil(range / 5);
 
-  for (let i = 0; i < range.length - 1; i++) {
-    const pair = [range[i], range[i + 1]];
-    pairs.push(pair);
+  let start = minPrice.value;
+  for (let i = 0; i < 5; i++) {
+    const end = Math.min(start + step, maxPrice.value);
+    pairs.push([start, end]);
+    start = end + 1;
   }
+  
   return pairs;
 });
 
-// get product having same category
+// get product having same category for product comparison
 const getCategoryProducts = (categoryId) => {
-  if (categoryId) {
-    return categoryProduct.value.filter((product) => product.category === categoryId);
-  } else {
+  if (!categoryId) {
     return [];
+  } 
+  const productOfSelectedCategory = productsList.value.filter((product) => product.category === categoryId);
+  if(productOfSelectedCategory.length === 1) {
+    Swal.fire({
+      icon: 'info',
+      text: "The selected category has only one product",
+      showClass: {
+        popup: 'animate__animated animate__fadeInDown'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOutUp'
+      }
+    });
+    selectedCompareCategory.value = ''
   }
+  return productOfSelectedCategory
 };
+
+// get options for second product
+const getFilteredCategoryProducts = computed(() => {
+  selectedProduct2.value = ''
+  return getCategoryProducts(selectedCompareCategory.value).filter(
+    product => product.id !== selectedProduct1.value.id
+  );
+})
 
 const compareCard = () => {
   isEdit = false;
@@ -333,24 +364,36 @@ const compareProductPrice = () => {
     selectedCompareCategory.value = ''
     selectedProduct1.value = ''
     selectedProduct2.value = ''
+    error.value = ''
   }
 }
 
-const filterData = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+const filterData = () => {
   let filteredProducts  = productsList.value
   if (search.value !== '') {
     filteredProducts = filteredProducts.filter((product) =>
       product.name.toLowerCase().includes(search.value.toLowerCase())
     )
   }
-  return filteredProducts.slice(startIndex, endIndex);
+  if(Array.isArray(selectedRange.value)) {
+    filteredProducts = filteredProducts.filter((product) => 
+      product.price >= selectedRange.value[0] && product.price <= selectedRange.value[1]
+    )
+  }
+  return filteredProducts;
+}
+
+const paginateFilterData = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  return filterData().slice(startIndex, endIndex);
 })
 
-const totalPages = computed(() => Math.ceil(filterData.value.length / itemsPerPage));
+const showPagination = computed(() => filterData().length > itemsPerPage);
 
-const pageCount = computed(() => Math.ceil(productsList.value.length / itemsPerPage));
+const totalPages = computed(() => Math.ceil(filterData().length / itemsPerPage));
+
+const pageCount = computed(() => Math.ceil(filterData().length / itemsPerPage));
 
 const updateData = (page) => {
   currentPage.value = page;
@@ -359,6 +402,9 @@ const updateData = (page) => {
 // product list
 const productList = () => {
   progress.start()
+  if (Array.isArray(selectedRange.value) || search.value !== '') {
+    isSearch = true
+  }
   axios.get("/api/products", {
       params: {
         search: search.value,
@@ -367,20 +413,31 @@ const productList = () => {
     })
     .then((res) => {
       productsList.value = res.data.product;
-      categoryProduct.value = res.data.categoryProduct
       const price = res.data.price;
+      noOfSearchResult.value = productsList.value.length
       minPrice.value = Math.min(...price);
       maxPrice.value = Math.max(...price);
       progress.finish()
+    })
+    .catch(error => {
+      progress.fail()
     });
 };
+
+const closeAlertMessage = () => {
+  isSearch = false
+  search.value = ''
+  selectedRange.value = ''
+  productList()
+}
 
 // product detail
 const detail = (product_id) => {
   showDetailCard.value = true;
-  axios.get(`/api/products/${product_id}`).then((res) => {
-    productDetail.value = res.data;
-  });
+  selectedCompareCategory.value = ''
+  selectedProduct1.value = ''
+  selectedProduct2.value = ''
+  productDetail.value = productsList.value.filter(product => product.id === product_id);
 };
 
 const create = () => {
@@ -393,6 +450,9 @@ const create = () => {
   product.price = "";
   product.category = "";
   error.value = "";
+  selectedCompareCategory.value = ''
+  selectedProduct1.value = ''
+  selectedProduct2.value = ''
 };
 
 // store product
@@ -428,6 +488,9 @@ const edit = (selectedProduct) => {
   product.name = selectedProduct.name;
   product.price = selectedProduct.price;
   product.category = selectedProduct.category;
+  selectedCompareCategory.value = ''
+  selectedProduct1.value = ''
+  selectedProduct2.value = ''
 };
 
 // update product
