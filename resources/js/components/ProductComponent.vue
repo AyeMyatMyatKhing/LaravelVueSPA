@@ -162,7 +162,7 @@
             </button>
           </div>
         </form>
-        <div v-if="isSearch" class="border rounded mt-3 bg-light bg-gradient px-2 py-1 text-center mb-3">
+        <div v-if="isSearch" class="col-6 border rounded mt-3 bg-light bg-gradient px-2 py-1 text-center mb-3">
           <p>You are searching with <span v-if="search">"{{ search }}" and</span> <span v-if="selectedRange">the price range between {{ selectedRange[0] }} and {{ selectedRange[1] }}.</span>
              The result data is {{ noOfSearchResult }}.</p>
           <button class="btn btn-primary btn-sm" @click="closeAlertMessage">Close</button>
